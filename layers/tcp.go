@@ -19,6 +19,7 @@ import (
 // TCP is the layer for TCP headers.
 type TCP struct {
 	BaseLayer
+	Reserved uint8//<= 0b111 = 7
 	SrcPort, DstPort                           TCPPort
 	Seq                                        uint32
 	Ack                                        uint32
@@ -223,6 +224,9 @@ func (t *TCP) flagsAndOffset() uint16 {
 	if t.NS {
 		f |= 0x0100
 	}
+	if t.Reserved>0 && t.Reserved<=7{
+		f+=uint16(t.Reserved*0b10)
+	}
 	return f
 }
 
@@ -247,6 +251,7 @@ func (tcp *TCP) DecodeFromBytes(data []byte, df gopacket.DecodeFeedback) error {
 	tcp.ECE = data[13]&0x40 != 0
 	tcp.CWR = data[13]&0x80 != 0
 	tcp.NS = data[12]&0x01 != 0
+	tcp.Reserved = uint8(data[12]&0x10)
 	tcp.Window = binary.BigEndian.Uint16(data[14:16])
 	tcp.Checksum = binary.BigEndian.Uint16(data[16:18])
 	tcp.Urgent = binary.BigEndian.Uint16(data[18:20])
